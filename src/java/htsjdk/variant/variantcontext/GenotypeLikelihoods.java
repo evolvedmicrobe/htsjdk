@@ -359,10 +359,32 @@ public class GenotypeLikelihoods {
         else if (ploidy == 1)
             return numAlleles;
         else {
-            int acc =0;
-            for (int k=0; k <= ploidy; k++ )
-                acc += calcNumLikelihoods(numAlleles - 1, ploidy - k);
-            return acc;
+            final int km1 = numAlleles - 1;
+            final int n = ploidy + km1;
+            int maxDenom = (n-km1);
+            int minDenom = km1;
+            //When calculating factorial, pick the largest of the two
+            //to cancel out the numerator and help avoid overflow
+            //in the factorial when calculating N choose K.
+            if(maxDenom < minDenom){
+                int tmp = maxDenom;
+                maxDenom = minDenom;
+                minDenom = tmp;
+            }
+            //calculate numerator of N choose K
+            int numerator = n;
+            int toMultiply = (n-1);
+            while(toMultiply > maxDenom) {
+                numerator *= toMultiply;
+                toMultiply--;
+            }
+            //calculate denominator
+            toMultiply=minDenom-1;
+            while(toMultiply>1) {
+                minDenom *= toMultiply;
+                toMultiply--;
+            }
+            return numerator / minDenom;
         }
     }
 
@@ -382,13 +404,8 @@ public class GenotypeLikelihoods {
      *
      * Note this method caches the value for most common num Allele / ploidy combinations for efficiency
      *
-     * Recursive implementation:
-     *   S(N,P) = sum_{k=0}^P S(N-1,P-k)
-     *  because if we have N integers, we can condition 1 integer to be = k, and then N-1 integers have to sum to P-K
-     * With initial conditions
-     *   S(N,1) = N  (only way to have N integers add up to 1 is all-zeros except one element with a one. There are N of these vectors)
-     *   S(1,P) = 1 (only way to have 1 integer add to P is with that integer P itself).
-     *
+     * Implementation using standard combinatorics.  For explanation see:
+     * http://math.stackexchange.com/questions/301259/how-many-ways-to-make-n-by-adding-k-non-negative-integers-proof
      *   @param  numAlleles      Number of alleles (including ref)
      *   @param  ploidy          Ploidy, or number of chromosomes in set
      *   @return    Number of likelihood elements we need to hold.
