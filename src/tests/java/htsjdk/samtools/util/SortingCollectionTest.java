@@ -41,7 +41,7 @@ import java.util.Random;
 
 public class SortingCollectionTest {
     // Create a separate directory for files so it is possible to confirm that the directory is emptied
-    private final File tmpDir = new File(System.getProperty("java.io.tmpdir") + "/" + System.getProperty("user.name"), 
+    protected final File tmpDir = new File(System.getProperty("java.io.tmpdir") + "/" + System.getProperty("user.name"),
             "SortingCollectionTest");
     @BeforeTest void setup() {
         // Clear out any existing files if the directory exists
@@ -55,13 +55,15 @@ public class SortingCollectionTest {
 
     @AfterTest void tearDown() {
         System.err.println("In SortingCollectionTest.tearDown.  tmpDir: " + tmpDir);
-        for (final File f : tmpDir.listFiles()) {
-            f.delete();
+        if (tmpDir.exists()) {
+            for (final File f : tmpDir.listFiles()) {
+                f.delete();
+            }
+            tmpDir.delete();
         }
-        tmpDir.delete();
     }
 
-    private boolean tmpDirIsEmpty() {
+    protected boolean tmpDirIsEmpty() {
         System.err.println("In SortingCollectionTest.tmpDirIsEmpty.  tmpDir: " + tmpDir);
         return tmpDir.listFiles().length == 0;
     }
@@ -70,7 +72,9 @@ public class SortingCollectionTest {
     public Object[][] createTestData() {
         return new Object[][] {
                 {"empty", 0, 100},
+                {"singleton", 1, 100},
                 {"less than threshold", 100, 200},
+                {"threshold minus 1", 99, 100},
                 {"greater than threshold", 550, 100},
                 {"threshold multiple", 600, 100},
                 {"threshold multiple plus one", 101, 100},
@@ -97,16 +101,17 @@ public class SortingCollectionTest {
 
         Assert.assertEquals(tmpDirIsEmpty(), numStringsToGenerate <= maxRecordsInRam);
         sortingCollection.setDestructiveIteration(false);
-        assertIteratorEqualsList(strings, sortingCollection);
-        assertIteratorEqualsList(strings, sortingCollection);
+        assertIteratorEqualsList(strings, sortingCollection.iterator());
+        assertIteratorEqualsList(strings, sortingCollection.iterator());
         
         sortingCollection.cleanup();
         Assert.assertEquals(tmpDir.list().length, 0);
     }
 
-    private void assertIteratorEqualsList(final String[] strings, final SortingCollection<String> sortingCollection) {
+    private void assertIteratorEqualsList(final String[] strings, final Iterator<String> sortingCollection) {
         int i = 0;
-        for (final String s : sortingCollection) {
+        while (sortingCollection.hasNext()) {
+            final String s = sortingCollection.next();
             Assert.assertEquals(s, strings[i++]);
         }
         Assert.assertEquals(i, strings.length);
